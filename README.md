@@ -16,11 +16,24 @@ control over ports, and so on.
 
 Installation
 ------------
+Install boto and configure it as decribed here http://boto.cloudhackers.com/en/latest/getting_started.html
+
+Set environment variables 
+"AWS_HOME", "AWS_KEYPAIR", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"
+
+- You can get "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY" 
+as described here http://docs.aws.amazon.com/general/latest/gr/getting-aws-sec-creds.html
+(You might have to create new ones if you've never done this before)
+
+- "AWS_KEYPAIR" is just the name of a keypair you use (without the .pem in the end)
+
+- "AWS_HOME" is just your "HOME" directory
+
 
 To install, from within your project's base directory, clone the EC2
 Tools repository into a new directory named `ec2`
 
-    git clone https://github.com/mnielsen/ec2_tools.git ec2
+    git clone https://github.com/lavanyaj/ec2_tools.git ec2
  
 Then add `ec2/*` to your `.gitignore` file, and commit:
  
@@ -33,7 +46,7 @@ For the `fabric` integration to work you must add the directory `ec2`
 to the $PYTHONPATH environment variable.  You must add the full path,
 e.g. add the following to your .bashrc:
 
-    export PYTHONPATH=/home/mnielsen/project/ec2/:$PYTHONPATH
+    export PYTHONPATH=/home/mnielson/project/ec2/:$PYTHONPATH
 
 To update
 ---------

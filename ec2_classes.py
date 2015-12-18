@@ -23,9 +23,10 @@ class Cluster():
     structures used to represent clusters.
     """
 
-    def __init__(self, cluster_name, instance_type, boto_instances):
+    def __init__(self, cluster_name, instance_type, ami, boto_instances):
         self.cluster_name = cluster_name
         self.instance_type = instance_type
+        self.ami = ami
         self.instances = [Instance(boto_instance) 
                           for boto_instance in boto_instances]
 

@@ -18,7 +18,7 @@ import sys
 import time
 
 # Third party libraries
-from boto.ec2.connection import EC2Connection
+import boto.ec2
 
 # My libraries
 import ec2_classes
@@ -26,16 +26,16 @@ import ec2_classes
 #### Constants and globals
 
 # The list of EC2 AMIs to use, from alestic.com
-AMIS = {"m1.small" : "ami-e2af508b",
-        "c1.medium" : "ami-e2af508b",
-        "m1.large" : "ami-68ad5201",
-        "m1.xlarge" : "ami-68ad5201",
-        "m2.xlarge" : "ami-68ad5201",
-        "m2.2xlarge" : "ami-68ad5201",
-        "m2.4xlarge" : "ami-68ad5201",
-        "c1.xlarge" : "ami-68ad5201",
-        "cc1.4xlarge" : "ami-1cad5275"
-        }
+# AMIS = {"m1.small" : "ami-e2af508b",
+#         "c1.medium" : "ami-e2af508b",
+#         "m1.large" : "ami-68ad5201",
+#         "m1.xlarge" : "ami-68ad5201",
+#         "m2.xlarge" : "ami-68ad5201",
+#         "m2.2xlarge" : "ami-68ad5201",
+#         "m2.4xlarge" : "ami-68ad5201",
+#         "c1.xlarge" : "ami-68ad5201",
+#         "cc1.4xlarge" : "ami-1cad5275"
+#         }
 
 # The most important data structure we use is a persistent shelf which
 # is used to represent all the clusters.  The keys in this shelf are
@@ -43,7 +43,7 @@ AMIS = {"m1.small" : "ami-e2af508b",
 # objects, which represent named EC2 clusters.
 #
 # The shelf will be stored at "HOME/.ec2-shelf"
-HOME = "/home/mnielsen"
+HOME = os.environ["HOME"]
 
 # Check that the required environment variables exist
 def check_environment_variables_exist(*args):
@@ -64,13 +64,16 @@ check_environment_variables_exist(
     "AWS_HOME", "AWS_KEYPAIR", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY")
 
 # EC2 connection object
-ec2_conn = EC2Connection(
-    os.environ["AWS_ACCESS_KEY_ID"], os.environ["AWS_SECRET_ACCESS_KEY"])
+#ec2_conn = EC2Connection(
+#    os.environ["AWS_ACCESS_KEY_ID"], os.environ["AWS_SECRET_ACCESS_KEY"])
+
+# make sure to configure boto as decribed here http://boto.cloudhackers.com/en/latest/getting_started.html
+ec2_conn = boto.ec2.connect_to_region("us-west-2")
 
 #### The following are the functions corresponding to the command line
 #### API calls: create, show, show_all etc.
 
-def create(cluster_name, n, instance_type):
+def create(cluster_name, n, instance_type, ami):
     """
     Create an EC2 cluster with name `cluster_name`, and `n` instances
     of type `instance_type`.  Update the `clusters` shelf to include a
@@ -85,14 +88,14 @@ def create(cluster_name, n, instance_type):
         print "Clusters must contain between 1 and 20 instances.  Exiting."
         sys.exit()
     clusters = shelve.open("%s/.ec2-shelf" % HOME, writeback=True)
-    if not instance_type in AMIS:
-        print "Instance type not recognized, setting it to be 'm1.small'."
-        instance_type = "m1.small"
+    #     if not instance_type in AMIS:
+    #         print "Instance type not recognized, setting it to be 'm1.small'."
+    #         instance_type = "m1.small"
     # Create the EC2 instances
-    instances = create_ec2_instances(n, instance_type)
+    instances = create_ec2_instances(n, instance_type, ami)
     # Update clusters
     clusters[cluster_name] = ec2_classes.Cluster(
-        cluster_name, instance_type, instances)
+        cluster_name, instance_type, ami, instances)
     clusters.close()
 
 def show(cluster_name):
@@ -160,7 +163,7 @@ def login(cluster_name, instance_index):
     instance = get_instance(cluster, instance_index)
     print "SSHing to instance with address %s" % (instance.public_dns_name)
     keypair = "%s/%s.pem" % (os.environ["AWS_HOME"], os.environ["AWS_KEYPAIR"])
-    os.system("ssh -i %s ubuntu@%s" % (keypair, instance.public_dns_name))
+    os.system("ssh -i %s -o StrictHostKeyChecking=no ubuntu@%s" % (keypair, instance.public_dns_name))
 
 def kill(cluster_name, instance_index):
     """
@@ -193,7 +196,7 @@ def add(cluster_name, n):
         print "Must be adding at least 1 instance to the cluster.  Exiting."
         sys.exit()
     # Create the EC2 instances
-    instances = create_ec2_instances(n, cluster.instance_type)
+    instances = create_ec2_instances(n, cluster.instance_type, cluster.ami)
     # Update clusters
     cluster.add(instances)
     clusters = shelve.open("%s/.ec2-shelf" % HOME, writeback=True)
@@ -214,7 +217,7 @@ def ssh(cluster_name, instance_index, cmd, background=False):
     append = {True: " &", False: ""}[background]
     remote_cmd = ("'nohup %s > foo.out 2> foo.err < /dev/null %s'" %
                   (cmd, append))
-    os.system(("ssh -o BatchMode=yes -i %s ubuntu@%s %s" %
+    os.system(("ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i %s ubuntu@%s %s" %
                (keypair, instance.public_dns_name, remote_cmd)))
 
 def ssh_all(cluster_name, cmd):
@@ -250,14 +253,14 @@ def scp_all(cluster_name, local_filename, remote_filename=False):
 
 #### Helper functions
 
-def create_ec2_instances(n, instance_type):
+def create_ec2_instances(n, instance_type, ami):
     """
     Create an EC2 cluster with `n` instances of type `instance_type`.
     Return the corresponding boto `reservation.instances` object.
     This code is used by both the `create` and `add` functions, which
     is why it was factored out.
     """
-    ami = AMIS[instance_type]
+    #ami = AMIS[instance_type]
     image = ec2_conn.get_all_images(image_ids=[ami])[0]
     reservation = image.run(
         n, n, os.environ["AWS_KEYPAIR"], instance_type=instance_type)
@@ -322,7 +325,7 @@ def public_dns_names(cluster_name):
     else:
         cluster = clusters[cluster_name]
         clusters.close()
-        return [instance.public_dns_name for instance in cluster.instances]
+        return ["ubuntu@%s"%(instance.public_dns_name) for instance in cluster.instances]
 
 def size(cluster_name):
     """
@@ -339,8 +342,8 @@ if __name__ == "__main__":
         cmd = args[0]
     except:
         cmd = None
-    if cmd=="create" and l==4:
-        create(args[1], int(args[2]), args[3])
+    if cmd=="create" and l==5:
+        create(args[1], int(args[2]), args[3], args[4])
     elif cmd=="show" and l==2:
         show(args[1])
     elif cmd=="show_all" and l==1:
