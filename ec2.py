@@ -16,10 +16,12 @@ import shelve
 import subprocess
 import sys
 import time
+import argparse
 
 # Third party libraries
 import boto.ec2
-
+import boto
+#boto.set_stream_logger('boto')
 # My libraries
 import ec2_classes
 
@@ -44,6 +46,23 @@ import ec2_classes
 #
 # The shelf will be stored at "HOME/.ec2-shelf"
 HOME = os.environ["HOME"]
+
+parser = argparse.ArgumentParser(description='Manage EC2 instances.')
+
+parser.add_argument('--create', action='store_true')
+parser.add_argument('--cluster_name', default='CLUSTER_NAME')
+parser.add_argument('--num_instances', default=1)
+parser.add_argument('--type', default='m3.xlarge')
+parser.add_argument('--ami', default='ami-02938c63')
+
+parser.add_argument('--show', action='store_true')
+parser.add_argument('--show_all', action='store_true')
+parser.add_argument('--shutdown', action='store_true')
+parser.add_argument('--shutdown_all', action='store_true')
+parser.add_argument('--add', action='store_true')
+
+args = parser.parse_args()
+
 
 # Check that the required environment variables exist
 def check_environment_variables_exist(*args):
@@ -335,31 +354,32 @@ def size(cluster_name):
 
 #### External interface
 
+
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    l = len(args)
-    try:
-        cmd = args[0]
-    except:
-        cmd = None
-    if cmd=="create" and l==5:
-        create(args[1], int(args[2]), args[3], args[4])
-    elif cmd=="show" and l==2:
-        show(args[1])
-    elif cmd=="show_all" and l==1:
+    if args.create:
+        create(args.cluster_name, int(args.num_instances), args.type, args.ami)
+    elif args.show:
+        show(args.cluster_name)
+    elif args.show_all:
         show_all()
-    elif cmd=="shutdown" and l==2:
-        shutdown(args[1])
-    elif cmd=="shutdown_all" and l==1:
+    elif args.shutdown:
+        shutdown(args.cluster_name)
+    elif args.shutdown_all:
         shutdown_all()
+    elif args.add:
+        add(args.cluster_name, int(args.num_instances))
+        pass
+    else:
+        print ("Command not recognized. ")
+        pass
+
+    """
     elif cmd=="login" and l==2:
         login(args[1], 0)
     elif cmd=="login" and l==3:
         login(args[1], int(args[2]))
     elif cmd=="kill" and l==3:
         kill(args[1], int(args[2]))
-    elif cmd=="add" and l==3:
-        add(args[1], int(args[2]))
     elif cmd=="ssh" and l==4:
         ssh(args[1], int(args[2]), args[3])
     elif cmd=="ssh_all" and l==3:
@@ -372,6 +392,4 @@ if __name__ == "__main__":
         scp_all(args[1], args[2])
     elif cmd=="scp_all" and l==4:
         scp_all(args[1], args[2], args[3])
-    else:
-        print ("Command not recognized. "
-               "For usage information, see README.md.")
+    """
