@@ -47,21 +47,6 @@ import ec2_classes
 # The shelf will be stored at "HOME/.ec2-shelf"
 HOME = os.environ["HOME"]
 
-parser = argparse.ArgumentParser(description='Manage EC2 instances.')
-
-parser.add_argument('--create', action='store_true')
-parser.add_argument('--cluster_name', default='CLUSTER_NAME')
-parser.add_argument('--num_instances', default=1)
-parser.add_argument('--type', default='m3.xlarge')
-parser.add_argument('--ami', default='ami-02938c63')
-
-parser.add_argument('--show', action='store_true')
-parser.add_argument('--show_all', action='store_true')
-parser.add_argument('--shutdown', action='store_true')
-parser.add_argument('--shutdown_all', action='store_true')
-parser.add_argument('--add', action='store_true')
-
-args = parser.parse_args()
 
 
 # Check that the required environment variables exist
@@ -356,6 +341,23 @@ def size(cluster_name):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Manage EC2 instances.')
+
+    parser.add_argument('--create', action='store_true')
+    parser.add_argument('--cluster_name', default='CLUSTER_NAME')
+    parser.add_argument('--num_instances', default=1)
+    parser.add_argument('--type', default='m3.xlarge')
+    parser.add_argument('--ami', default='ami-02938c63')
+
+    parser.add_argument('--show', action='store_true')
+    parser.add_argument('--show_all', action='store_true')
+    parser.add_argument('--shutdown', action='store_true')
+    parser.add_argument('--shutdown_all', action='store_true')
+    parser.add_argument('--add', action='store_true')
+
+    args = parser.parse_args()
+
+    
     if args.create:
         create(args.cluster_name, int(args.num_instances), args.type, args.ami)
     elif args.show:
