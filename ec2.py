@@ -347,7 +347,7 @@ if __name__ == "__main__":
     parser.add_argument('--cluster_name', default='CLUSTER_NAME')
     parser.add_argument('--num_instances', default=1)
     parser.add_argument('--type', default='m3.xlarge')
-    parser.add_argument('--ami', default='ami-02938c63')
+    parser.add_argument('--ami', default='ami-b3b7add2')
 
     parser.add_argument('--show', action='store_true')
     parser.add_argument('--show_all', action='store_true')
